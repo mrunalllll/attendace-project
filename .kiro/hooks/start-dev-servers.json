@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Start Dev Servers",
+      "trigger": "SessionStart",
+      "description": "Automatically starts backend (nodemon) and frontend (vite) dev servers when a session begins",
+      "action": {
+        "type": "command",
+        "command": "Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd \"c:\\Users\\Mrunal\\OneDrive\\Desktop\\voting-app\"; npm run dev'"
+      }
+    }
+  ]
+}
