@@ -35,11 +35,19 @@ app.use(session({
 // ── Serve uploaded images statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ── Routes
+// ── Routes — core voting system
 app.use('/api/auth',    require('./routes/auth'));
 app.use('/api/voter',   require('./routes/voter'));
 app.use('/api/admin',   require('./routes/admin'));
 app.use('/api/results', require('./routes/results'));
+
+// ── Routes — college management system
+// Each router handles BOTH public and admin sub-paths internally.
+// They are mounted ONCE — no duplicate mounts needed.
+app.use('/api/departments',   require('./routes/departments'));
+app.use('/api/events',        require('./routes/events'));
+app.use('/api/gallery',       require('./routes/gallery'));
+app.use('/api/announcements', require('./routes/announcements'));
 
 // ── Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', time: new Date() }));

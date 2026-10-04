@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────
 import { useAuth } from '../context/AuthContext'
 import ThemeToggle from './ThemeToggle'
+import SandipLogo  from './SandipLogo'
 
 export default function AdminNavbar({ onToggleSidebar, breadcrumb = '' }) {
   const { user, logout } = useAuth()
@@ -15,7 +16,13 @@ export default function AdminNavbar({ onToggleSidebar, breadcrumb = '' }) {
         <button className="btn-glass" onClick={onToggleSidebar} style={{ padding: '0.4rem 0.7rem' }}>
           <i className="bi bi-list" style={{ fontSize: '1.2rem' }} />
         </button>
-        <nav aria-label="breadcrumb">
+
+        {/* Show compact logo in navbar when sidebar is collapsed / on mobile */}
+        <div className="d-lg-none">
+          <SandipLogo size={32} full />
+        </div>
+
+        <nav aria-label="breadcrumb" className="d-none d-lg-block">
           <ol className="breadcrumb mb-0" style={{ fontSize: '0.8rem' }}>
             <li className="breadcrumb-item">
               <span className="text-gradient" style={{ fontWeight: 600 }}>Admin</span>
@@ -46,7 +53,13 @@ export default function AdminNavbar({ onToggleSidebar, breadcrumb = '' }) {
             </div>
             <i className="bi bi-chevron-down" style={{ fontSize: '0.7rem', opacity: 0.5 }} />
           </div>
-          <ul className="dropdown-menu dropdown-menu-end glass-card border-0">
+          <ul className="dropdown-menu dropdown-menu-end glass-card border-0" style={{ minWidth: 180 }}>
+            <li>
+              <div style={{ padding: '0.5rem 1rem 0.25rem' }}>
+                <SandipLogo size={28} full />
+              </div>
+            </li>
+            <li><hr className="dropdown-divider" style={{ borderColor: 'var(--border)' }} /></li>
             <li>
               <button className="dropdown-item" onClick={logout} style={{ color: 'var(--danger)' }}>
                 <i className="bi bi-box-arrow-right me-2" /> Logout

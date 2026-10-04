@@ -86,8 +86,8 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Stats row */}
-      <div className="row g-3" style={{ marginBottom: '1.5rem' }}>
+      {/* Stats row — voting */}
+      <div className="row g-3" style={{ marginBottom: '1rem' }}>
         {[
           { icon: 'bi-people-fill',       color: 'blue',   value: stats.total_users,      label: 'Total Voters' },
           { icon: 'bi-person-badge-fill', color: 'purple', value: stats.total_candidates, label: 'Candidates' },
@@ -98,6 +98,40 @@ export default function AdminDashboard() {
         ].map(s => (
           <div key={s.label} className="col-6 col-xl-2 col-lg-4">
             <StatCard {...s} />
+          </div>
+        ))}
+      </div>
+
+      {/* Stats row — college */}
+      <div className="row g-3" style={{ marginBottom: '1.5rem' }}>
+        {[
+          { icon: 'bi-building-fill',        color: 'cyan',   value: stats.total_departments,   label: 'Departments' },
+          { icon: 'bi-calendar-event-fill',  color: 'purple', value: stats.total_events,        label: 'Total Events' },
+          { icon: 'bi-calendar-check-fill',  color: 'green',  value: stats.upcoming_events,     label: 'Upcoming Events' },
+          { icon: 'bi-images',               color: 'orange', value: stats.total_gallery,       label: 'Gallery Photos' },
+          { icon: 'bi-megaphone-fill',       color: 'blue',   value: stats.total_announcements, label: 'Announcements' },
+          { icon: 'bi-mortarboard-fill',     color: 'pink',   value: stats.total_users,         label: 'Students' },
+        ].map(s => (
+          <div key={s.label} className="col-6 col-xl-2 col-lg-4">
+            <StatCard {...s} />
+          </div>
+        ))}
+      </div>
+
+      {/* Quick links — college management */}
+      <div className="row g-3" style={{ marginBottom: '1.5rem' }}>
+        {[
+          { to: '/admin/departments',   icon: 'bi-building-fill',       label: 'Departments',   color: 'cyan' },
+          { to: '/admin/events',        icon: 'bi-calendar-event-fill', label: 'Events',        color: 'purple' },
+          { to: '/admin/gallery',       icon: 'bi-images',              label: 'Gallery',       color: 'orange' },
+          { to: '/admin/announcements', icon: 'bi-megaphone-fill',      label: 'Announcements', color: 'blue' },
+        ].map(item => (
+          <div key={item.to} className="col-6 col-md-3">
+            <Link to={item.to} className="glass-card d-flex align-items-center gap-3 p-3 text-decoration-none hover-lift" style={{ color: 'var(--text)' }}>
+              <div className={`stat-icon ${item.color}`}><i className={`bi ${item.icon}`}></i></div>
+              <span className="fw-semibold" style={{ fontSize: '0.9rem' }}>{item.label}</span>
+              <i className="bi bi-arrow-right ms-auto" style={{ opacity: 0.4 }}></i>
+            </Link>
           </div>
         ))}
       </div>

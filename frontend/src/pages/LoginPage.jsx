@@ -13,6 +13,7 @@ import { useNavigate, Link }   from 'react-router-dom'
 import { useAuth }             from '../context/AuthContext'
 import ThemeToggle             from '../components/ThemeToggle'
 import Alert                   from '../components/Alert'
+import SandipLogo              from '../components/SandipLogo'
 
 export default function LoginPage() {
   // ── State (replaces PHP $_POST variables) ──
@@ -79,13 +80,12 @@ export default function LoginPage() {
       <div className="login-wrapper">
         <div className="login-card">
 
-          {/* Logo */}
-          <div className="login-logo"><i className="bi bi-shield-check" /></div>
-          <h1 className="text-gradient" style={{ textAlign: 'center', fontWeight: 800, fontSize: '1.6rem' }}>
-            VoteSecure
-          </h1>
-          <p style={{ textAlign: 'center', fontSize: '0.82rem', opacity: 0.55, marginBottom: '1.75rem' }}>
-            National Online Voting System — Secure &amp; Transparent
+          {/* Logo — Sandip University */}
+          <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+            <SandipLogo size={72} full />
+          </div>
+          <p style={{ textAlign: 'center', fontSize: '0.78rem', opacity: 0.5, marginBottom: '1.75rem', letterSpacing: '0.05em' }}>
+            Student Portal — Election &amp; Voting System
           </p>
 
           {/* Error alert */}

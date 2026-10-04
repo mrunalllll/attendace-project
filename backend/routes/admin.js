@@ -48,12 +48,25 @@ router.get('/dashboard', async (req, res) => {
     `);
     const top_cand = topRows[0] ?? null;
 
+    // ── College management stats ──────────────────
+    const [deptRows]    = await db.execute('SELECT COUNT(*) as cnt FROM departments WHERE status=1');
+    const [evRows]      = await db.execute('SELECT COUNT(*) as cnt FROM events WHERE is_published=1');
+    const [upEvRows]    = await db.execute("SELECT COUNT(*) as cnt FROM events WHERE is_published=1 AND status='upcoming'");
+    const [gallRows]    = await db.execute('SELECT COUNT(*) as cnt FROM gallery');
+    const [annRows]     = await db.execute('SELECT COUNT(*) as cnt FROM announcements WHERE is_published=1');
+
     res.json({
       success: true,
       stats: {
         total_users, total_candidates, total_votes, voted_users,
         pending_users: total_users - voted_users, blocked_users,
         turnout_pct: total_users > 0 ? Math.round((voted_users / total_users) * 100) : 0,
+        // college stats
+        total_departments:  deptRows[0]?.cnt   ?? 0,
+        total_events:       evRows[0]?.cnt      ?? 0,
+        upcoming_events:    upEvRows[0]?.cnt    ?? 0,
+        total_gallery:      gallRows[0]?.cnt    ?? 0,
+        total_announcements: annRows[0]?.cnt    ?? 0,
       },
       election, cand_chart, daily, recent_logs, top_cand,
     });

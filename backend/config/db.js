@@ -41,17 +41,18 @@ async function getDb() {
   // ── Create schema ──────────────────────────────
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      name        TEXT    NOT NULL,
-      mobile      TEXT    NOT NULL UNIQUE,
-      email       TEXT    DEFAULT NULL,
-      password    TEXT    NOT NULL,
-      address     TEXT    NOT NULL DEFAULT '',
-      photo       TEXT    NOT NULL DEFAULT 'default.png',
-      role        INTEGER NOT NULL DEFAULT 1,
-      status      INTEGER NOT NULL DEFAULT 0,
-      is_verified INTEGER NOT NULL DEFAULT 0,
-      created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      name          TEXT    NOT NULL,
+      mobile        TEXT    NOT NULL UNIQUE,
+      email         TEXT    DEFAULT NULL,
+      password      TEXT    NOT NULL,
+      address       TEXT    NOT NULL DEFAULT '',
+      photo         TEXT    NOT NULL DEFAULT 'default.png',
+      role          INTEGER NOT NULL DEFAULT 1,
+      status        INTEGER NOT NULL DEFAULT 0,
+      is_verified   INTEGER NOT NULL DEFAULT 0,
+      department_id INTEGER DEFAULT NULL,
+      created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
     );
     CREATE TABLE IF NOT EXISTS candidates (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,7 +101,98 @@ async function getDb() {
       type       TEXT DEFAULT 'info',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS departments (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      name        TEXT    NOT NULL,
+      code        TEXT    NOT NULL DEFAULT '',
+      slug        TEXT    NOT NULL DEFAULT '',
+      description TEXT    DEFAULT NULL,
+      hod_name    TEXT    DEFAULT NULL,
+      hod_photo   TEXT    DEFAULT NULL,
+      banner      TEXT    DEFAULT NULL,
+      image       TEXT    DEFAULT NULL,
+      established TEXT    DEFAULT NULL,
+      seats       INTEGER DEFAULT NULL,
+      status      INTEGER NOT NULL DEFAULT 1,
+      sort_order  INTEGER NOT NULL DEFAULT 0,
+      created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS events (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      title            TEXT    NOT NULL,
+      slug             TEXT    NOT NULL DEFAULT '',
+      description      TEXT    DEFAULT NULL,
+      department_id    INTEGER DEFAULT NULL,
+      category         TEXT    NOT NULL DEFAULT 'Other',
+      event_date       TEXT    DEFAULT NULL,
+      start_time       TEXT    DEFAULT NULL,
+      end_time         TEXT    DEFAULT NULL,
+      venue            TEXT    DEFAULT NULL,
+      organizer        TEXT    DEFAULT NULL,
+      poster           TEXT    DEFAULT NULL,
+      registration_info TEXT   DEFAULT NULL,
+      status           TEXT    NOT NULL DEFAULT 'upcoming',
+      is_published     INTEGER NOT NULL DEFAULT 1,
+      created_at       TEXT    NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS event_photos (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_id   INTEGER NOT NULL,
+      photo      TEXT    NOT NULL,
+      title      TEXT    DEFAULT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS gallery (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      title         TEXT    DEFAULT NULL,
+      photo         TEXT    NOT NULL,
+      category      TEXT    NOT NULL DEFAULT 'General',
+      department_id INTEGER DEFAULT NULL,
+      event_id      INTEGER DEFAULT NULL,
+      is_featured   INTEGER NOT NULL DEFAULT 0,
+      created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
+      FOREIGN KEY (event_id)      REFERENCES events(id)      ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS announcements (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      title        TEXT    NOT NULL,
+      body         TEXT    DEFAULT NULL,
+      type         TEXT    NOT NULL DEFAULT 'info',
+      department_id INTEGER DEFAULT NULL,
+      is_published INTEGER NOT NULL DEFAULT 1,
+      is_pinned    INTEGER NOT NULL DEFAULT 0,
+      expires_at   TEXT    DEFAULT NULL,
+      created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS department_faculty (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      department_id INTEGER NOT NULL,
+      name          TEXT    NOT NULL,
+      designation   TEXT    DEFAULT NULL,
+      email         TEXT    DEFAULT NULL,
+      photo         TEXT    DEFAULT NULL,
+      sort_order    INTEGER NOT NULL DEFAULT 0,
+      created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
+    );
   `);
+
+  // ── Migrate existing DB: add department_id to users if missing ────
+  try {
+    db.run('ALTER TABLE users ADD COLUMN department_id INTEGER DEFAULT NULL');
+    save();
+  } catch (_) { /* column already exists — safe to ignore */ }
 
   // ── Seed election row (only if missing) ───────
   const elecRow = db.exec("SELECT id FROM election_settings WHERE id=1");
@@ -131,6 +223,28 @@ async function getDb() {
         ('Priya Sharma','People''s Democratic Front','Focused on healthcare, women empowerment and rural development.',1),
         ('Arjun Mehta','United Citizens Alliance','Driving infrastructure development and digital India initiatives.',1)
     `);
+  }
+
+  // ── Seed sample departments (only if missing) ──
+  const deptRow = db.exec("SELECT id FROM departments LIMIT 1");
+  if (!deptRow.length || !deptRow[0].values.length) {
+    const depts = [
+      ['Computer Science & Engineering', 'CSE', 'cse', 'The CSE department offers cutting-edge programs in software development, algorithms, and computer systems.', 'Dr. Rajesh Patil', 1],
+      ['Artificial Intelligence & ML', 'AIML', 'aiml', 'Pioneering the future with AI, Machine Learning, Deep Learning, and Data Science programs.', 'Dr. Priya Sharma', 2],
+      ['Information Technology', 'IT', 'it', 'Focused on IT infrastructure, networking, cybersecurity, and modern web technologies.', 'Dr. Amit Joshi', 3],
+      ['Electronics & Telecomm.', 'ENTC', 'entc', 'Covering electronics, embedded systems, VLSI design, and telecommunications engineering.', 'Dr. Sunil Kulkarni', 4],
+      ['Mechanical Engineering', 'MECH', 'mechanical', 'Comprehensive mechanical engineering covering design, manufacturing, thermal, and automation.', 'Dr. Vikram Singh', 5],
+      ['Civil Engineering', 'CIVIL', 'civil', 'Building tomorrow\'s infrastructure with structural, environmental, and transportation engineering.', 'Dr. Neha Desai', 6],
+      ['MBA', 'MBA', 'mba', 'Master of Business Administration — leadership, strategy, finance, and entrepreneurship.', 'Dr. Anand Kapoor', 7],
+      ['MCA', 'MCA', 'mca', 'Master of Computer Applications — advanced computing, software engineering, and AI.', 'Dr. Meena Iyer', 8],
+    ];
+    for (const [name, code, slug, description, hod_name, sort_order] of depts) {
+      db.run(
+        `INSERT INTO departments (name,code,slug,description,hod_name,status,sort_order)
+         VALUES (?,?,?,?,?,1,?)`,
+        [name, code, slug, description, hod_name, sort_order]
+      );
+    }
   }
 
   save(); // persist initial schema + seed

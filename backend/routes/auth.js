@@ -12,11 +12,12 @@ router.get('/me', (req, res) => {
   if (!req.session?.userId) return res.json({ user: null });
   res.json({
     user: {
-      id:     req.session.userId,
-      name:   req.session.userName,
-      role:   req.session.userRole,
-      photo:  req.session.userPhoto,
-      status: req.session.userStatus,
+      id:            req.session.userId,
+      name:          req.session.userName,
+      role:          req.session.userRole,
+      photo:         req.session.userPhoto,
+      status:        req.session.userStatus,
+      department_id: req.session.userDepartmentId ?? null,
     },
   });
 });
@@ -49,19 +50,23 @@ router.post('/login', async (req, res) => {
 
     req.session.regenerate(err => {
       if (err) return res.status(500).json({ success: false, message: 'Session error.' });
-      req.session.userId     = user.id;
-      req.session.userName   = user.name;
-      req.session.userRole   = user.role;
-      req.session.userPhoto  = user.photo || 'default.png';
-      req.session.userStatus = user.status;
+      req.session.userId           = user.id;
+      req.session.userName         = user.name;
+      req.session.userRole         = user.role;
+      req.session.userPhoto        = user.photo || 'default.png';
+      req.session.userStatus       = user.status;
+      req.session.userDepartmentId = user.department_id ?? null;
 
       logActivity(user.id, 'Login', 'Successful login', req);
 
       res.json({
         success: true,
         user: {
-          id: user.id, name: user.name,
-          role: user.role, photo: user.photo || 'default.png',
+          id:            user.id,
+          name:          user.name,
+          role:          user.role,
+          photo:         user.photo || 'default.png',
+          department_id: user.department_id ?? null,
         },
       });
     });
@@ -74,7 +79,7 @@ router.post('/login', async (req, res) => {
 // ── POST /api/auth/register
 router.post('/register', upload.single('image'), async (req, res) => {
   try {
-    const { name, mob, email, pass, cpass, address } = req.body;
+    const { name, mob, email, pass, cpass, address, department_id } = req.body;
     const errors = [];
 
     if (!name?.trim() || name.trim().length < 2)      errors.push('Name must be at least 2 characters.');
@@ -83,6 +88,7 @@ router.post('/register', upload.single('image'), async (req, res) => {
     if (!pass || pass.length < 8)                      errors.push('Password must be at least 8 characters.');
     if (pass !== cpass)                                errors.push('Passwords do not match.');
     if (!address?.trim() || address.trim().length < 3) errors.push('Please enter a valid address.');
+    if (!department_id)                                errors.push('Please select your department.');
 
     if (errors.length)
       return res.status(400).json({ success: false, message: errors.join(' ') });
@@ -90,6 +96,11 @@ router.post('/register', upload.single('image'), async (req, res) => {
     const [existing] = await db.execute('SELECT id FROM users WHERE mobile=?', [mob]);
     if (existing[0])
       return res.status(409).json({ success: false, message: 'This mobile number is already registered.' });
+
+    // Validate department exists
+    const [deptRows] = await db.execute('SELECT id FROM departments WHERE id=? AND status=1', [parseInt(department_id)]);
+    if (!deptRows[0])
+      return res.status(400).json({ success: false, message: 'Selected department is invalid.' });
 
     const [elecRows] = await db.execute('SELECT allow_registration FROM election_settings LIMIT 1');
     const elec = elecRows[0];
@@ -100,8 +111,8 @@ router.post('/register', upload.single('image'), async (req, res) => {
     const hashed = await bcrypt.hash(pass, 12);
 
     const result = await db.execute(
-      'INSERT INTO users (name,mobile,email,password,address,photo,role,status,is_verified) VALUES (?,?,?,?,?,?,?,0,0)',
-      [name.trim(), mob, email || null, hashed, address.trim(), photo, ROLES.VOTER]
+      'INSERT INTO users (name,mobile,email,password,address,photo,role,status,is_verified,department_id) VALUES (?,?,?,?,?,?,?,0,0,?)',
+      [name.trim(), mob, email || null, hashed, address.trim(), photo, ROLES.VOTER, parseInt(department_id)]
     );
     const insertId = result[0].insertId;
 
@@ -118,6 +129,33 @@ router.post('/register', upload.single('image'), async (req, res) => {
 router.post('/logout', async (req, res) => {
   if (req.session?.userId) await logActivity(req.session.userId, 'Logout', '', req);
   req.session.destroy(() => res.json({ success: true }));
+});
+
+// ── PATCH /api/auth/update-department  (voters only)
+router.patch('/update-department', async (req, res) => {
+  try {
+    if (!req.session?.userId)
+      return res.status(401).json({ success: false, message: 'Not logged in.' });
+    if (req.session.userRole !== ROLES.VOTER)
+      return res.status(403).json({ success: false, message: 'Only voters can update their department.' });
+
+    const { department_id } = req.body;
+    if (!department_id)
+      return res.status(400).json({ success: false, message: 'department_id is required.' });
+
+    const [deptRows] = await db.execute('SELECT id, name FROM departments WHERE id=? AND status=1', [parseInt(department_id)]);
+    if (!deptRows[0])
+      return res.status(400).json({ success: false, message: 'Invalid department selected.' });
+
+    await db.execute('UPDATE users SET department_id=? WHERE id=?', [parseInt(department_id), req.session.userId]);
+    req.session.userDepartmentId = parseInt(department_id);
+
+    await logActivity(req.session.userId, 'Update Department', `Changed to: ${deptRows[0].name}`, req);
+    res.json({ success: true, message: 'Department updated.', department_id: parseInt(department_id) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, message: 'Failed to update department.' });
+  }
 });
 
 module.exports = router;
